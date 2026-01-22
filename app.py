@@ -14,17 +14,43 @@ st.set_page_config(
 # ---------------- STYLE ----------------
 st.markdown("""
 <style>
+/* Full app background */
 body {
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    background: 
+        linear-gradient(rgba(220, 245, 220, 0.9), rgba(220, 245, 220, 0.9)),
+        url("https://www.transparenttextures.com/patterns/tree-bark.png");
+    background-attachment: fixed;
 }
+
+/* Main white card */
 .main {
-    background-color: white;
-    padding: 25px;
-    border-radius: 15px;
+    background-color: #f4fff4;
+    padding: 30px;
+    border-radius: 18px;
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.15);
 }
-h1, h2 {
+
+/* Headings */
+h1 {
     text-align: center;
-    color: #203a43;
+    color: #1b5e20;
+}
+
+h2, h3 {
+    color: #2e7d32;
+}
+
+/* Buttons */
+.stButton > button {
+    background-color: #66bb6a;
+    color: white;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+.stButton > button:hover {
+    background-color: #388e3c;
+    color: white;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -129,18 +155,6 @@ if st.button("🔍 Predict AQI"):
     ax.set_xlabel("AQI Scale")
     st.pyplot(fig)
 
-    # ---------------- FEATURE IMPORTANCE ----------------
-    st.subheader("📈 Feature Importance")
-
-    features = ["CO AQI", "Ozone AQI", "NO2 AQI", "PM2.5 AQI"]
-    importances = rf_model.feature_importances_
-
-    fig2, ax2 = plt.subplots()
-    ax2.bar(features, importances)
-    ax2.set_ylabel("Importance")
-    ax2.set_title("Pollutant Impact on AQI")
-    st.pyplot(fig2)
-
 # ---------------- FOOTER ----------------
 st.markdown("---")
-st.caption("Tamil Nadu AQI Prediction System | Random Forest ML Project")
+st.caption("Tamil Nadu AQI Prediction System | Random Forest ML Project | Done by Manohar.S")
