@@ -1,12 +1,13 @@
 import streamlit as st
 import numpy as np
-import joblib
 import pandas as pd
+import joblib
+import tensorflow as tf
 import matplotlib.pyplot as plt
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
-    page_title="AQI Predictor – Random Forest",
+    page_title="Advanced AQI Prediction System",
     page_icon="🌍",
     layout="centered"
 )
@@ -22,69 +23,125 @@ body {
     padding: 25px;
     border-radius: 15px;
 }
-h1 {
-    color: #243b55;
+h1, h2 {
     text-align: center;
+    color: #243b55;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- LOAD MODEL ----------------
+# ---------------- LOAD MODELS ----------------
 rf_model = joblib.load("model_rf.pkl")
+nn_model = tf.keras.models.load_model("model_nn.h5")
+scaler = joblib.load("scaler.pkl")
 
 # ---------------- TITLE ----------------
-st.title("🌫️ Air Quality Index Prediction")
-st.write("Random Forest Machine Learning Model")
+st.title("🌫️ Advanced Air Quality Index Predictor")
 
-st.markdown("### 👉 Adjust the sliders to enter air quality values")
+# ---------------- CITY PRESETS ----------------
+st.subheader("🏙️ City Presets")
 
-# ---------------- INPUTS (SLIDERS) ----------------
-col1, col2 = st.columns(2)
+city_data = {
+    "Custom": [10, 30, 20, 80],
+    "Chennai": [12, 35, 25, 90],
+    "Delhi": [40, 60, 50, 180],
+    "Mumbai": [18, 40, 30, 100],
+    "Bangalore": [8, 25, 15, 60]
+}
 
-with col1:
-    CO_AQI = st.slider("CO AQI Value", 0, 300, 10)
-    OZONE_AQI = st.slider("Ozone AQI Value", 0, 300, 30)
+city = st.selectbox("Select a City", list(city_data.keys()))
+default_values = city_data[city]
 
-with col2:
-    NO2_AQI = st.slider("NO₂ AQI Value", 0, 300, 20)
-    PM25_AQI = st.slider("PM2.5 AQI Value", 0, 500, 80)
+# ---------------- INPUT SLIDERS ----------------
+st.subheader("📊 Enter AQI Component Values")
 
-input_data = np.array([[CO_AQI, OZONE_AQI, NO2_AQI, PM25_AQI]])
+CO_AQI = st.slider("CO AQI Value", 0, 300, default_values[0])
+OZONE_AQI = st.slider("Ozone AQI Value", 0, 300, default_values[1])
+NO2_AQI = st.slider("NO₂ AQI Value", 0, 300, default_values[2])
+PM25_AQI = st.slider("PM2.5 AQI Value", 0, 500, default_values[3])
 
-# ---------------- PREDICT BUTTON ----------------
+input_rf = np.array([[CO_AQI, OZONE_AQI, NO2_AQI, PM25_AQI]])
+
+# ---------------- MODEL SELECTION ----------------
+model_choice = st.radio(
+    "Choose Model",
+    ["Random Forest", "Neural Network"]
+)
+
+# ---------------- PREDICTION ----------------
 if st.button("🔍 Predict AQI"):
-    if np.all(input_data == 0):
-        st.error("⚠️ Please move the sliders to enter values")
+    if model_choice == "Random Forest":
+        prediction = rf_model.predict(input_rf)[0]
     else:
-        prediction = rf_model.predict(input_data)[0]
+        input_nn = scaler.transform(input_rf)
+        prediction = nn_model.predict(input_nn)[0][0]
 
-        st.success(f"🌍 Predicted AQI Value: **{prediction:.2f}**")
+    st.success(f"🌍 Predicted AQI Value: **{prediction:.2f}**")
 
-        # AQI CATEGORY
-        if prediction <= 50:
-            category = "Good 🟢"
-        elif prediction <= 100:
-            category = "Moderate 🟡"
-        elif prediction <= 200:
-            category = "Poor 🟠"
-        elif prediction <= 300:
-            category = "Very Poor 🔴"
-        else:
-            category = "Severe ☠️"
+    # ---------------- AQI CATEGORY + HEALTH ADVISORY ----------------
+    st.subheader("🩺 Health Advisory")
 
-        st.subheader(f"AQI Category: {category}")
+    if prediction <= 50:
+        category = "Good 🟢"
+        advice = "Air quality is good. Enjoy outdoor activities."
+    elif prediction <= 100:
+        category = "Moderate 🟡"
+        advice = "Acceptable air quality. Sensitive people should be cautious."
+    elif prediction <= 200:
+        category = "Poor 🟠"
+        advice = "Reduce outdoor activities. Wear a mask if needed."
+    elif prediction <= 300:
+        category = "Very Poor 🔴"
+        advice = "Avoid outdoor activities. Health alert!"
+    else:
+        category = "Severe ☠️"
+        advice = "Serious health risk. Stay indoors."
 
-        # ---------------- GRAPH ----------------
-        st.markdown("### 📊 Air Quality Component Analysis")
+    st.write(f"**Category:** {category}")
+    st.warning(advice)
 
-        df = pd.DataFrame({
-            "Pollutant": ["CO AQI", "Ozone AQI", "NO2 AQI", "PM2.5 AQI"],
-            "Value": [CO_AQI, OZONE_AQI, NO2_AQI, PM25_AQI]
-        })
+    # ---------------- AQI SPEEDOMETER (BAR STYLE) ----------------
+    st.subheader("🎯 AQI Speedometer")
 
-        fig, ax = plt.subplots()
-        ax.bar(df["Pollutant"], df["Value"])
-        ax.set_ylabel("AQI Value")
-        ax.set_title("User Input AQI Components")
+    gauge_df = pd.DataFrame({
+        "AQI": [prediction]
+    })
 
-        st.pyplot(fig)
+    fig, ax = plt.subplots()
+    ax.barh(["AQI Level"], gauge_df["AQI"])
+    ax.set_xlim(0, 500)
+    ax.set_xlabel("AQI Scale")
+    st.pyplot(fig)
+
+    # ---------------- FEATURE IMPORTANCE ----------------
+    st.subheader("📈 Feature Importance (Random Forest)")
+
+    feature_names = ["CO AQI", "Ozone AQI", "NO2 AQI", "PM2.5 AQI"]
+    importances = rf_model.feature_importances_
+
+    fig2, ax2 = plt.subplots()
+    ax2.bar(feature_names, importances)
+    ax2.set_ylabel("Importance Score")
+    ax2.set_title("Pollutant Impact on AQI")
+    st.pyplot(fig2)
+
+    # ---------------- MODEL COMPARISON ----------------
+    st.subheader("⚖️ Model Comparison")
+
+    rf_pred = rf_model.predict(input_rf)[0]
+    nn_pred = nn_model.predict(scaler.transform(input_rf))[0][0]
+
+    compare_df = pd.DataFrame({
+        "Model": ["Random Forest", "Neural Network"],
+        "Predicted AQI": [rf_pred, nn_pred]
+    })
+
+    fig3, ax3 = plt.subplots()
+    ax3.bar(compare_df["Model"], compare_df["Predicted AQI"])
+    ax3.set_ylabel("AQI Value")
+    ax3.set_title("Model Prediction Comparison")
+    st.pyplot(fig3)
+
+# ---------------- FOOTER ----------------
+st.markdown("---")
+st.caption("Advanced AQI Prediction System | ML & Deep Learning Project")
