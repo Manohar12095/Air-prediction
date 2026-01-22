@@ -2,12 +2,14 @@ import streamlit as st
 import numpy as np
 import joblib
 
+# ---------------- PAGE CONFIG ----------------
 st.set_page_config(
     page_title="AQI Prediction – Random Forest",
     page_icon="🌍",
     layout="centered"
 )
 
+# ---------------- CUSTOM CSS ----------------
 st.markdown("""
 <style>
 body {
@@ -33,36 +35,51 @@ h1 {
 </style>
 """, unsafe_allow_html=True)
 
-# Load model
+# ---------------- LOAD MODEL ----------------
 rf_model = joblib.load("model_rf.pkl")
 
-st.title("🌫️ AQI Prediction")
+# ---------------- TITLE ----------------
+st.title("🌫️ Air Quality Index Prediction")
 st.write("Using **Random Forest Machine Learning Model**")
 
-st.subheader("Enter AQI Component Values")
+# ---------------- INPUT SECTION ----------------
+st.subheader("Enter Air Pollutant Values")
 
-# ✅ ONLY 4 INPUTS
-CO_AQI = st.number_input("CO AQI Value", min_value=0.0)
-OZONE_AQI = st.number_input("Ozone AQI Value", min_value=0.0)
-NO2_AQI = st.number_input("NO2 AQI Value", min_value=0.0)
-PM25_AQI = st.number_input("PM2.5 AQI Value", min_value=0.0)
+PM25 = st.number_input("PM2.5", min_value=0.0)
+PM10 = st.number_input("PM10", min_value=0.0)
+NO = st.number_input("NO", min_value=0.0)
+NO2 = st.number_input("NO2", min_value=0.0)
+NOx = st.number_input("NOx", min_value=0.0)
+NH3 = st.number_input("NH3", min_value=0.0)
+CO = st.number_input("CO", min_value=0.0)
+SO2 = st.number_input("SO2", min_value=0.0)
+O3 = st.number_input("O3", min_value=0.0)
+Benzene = st.number_input("Benzene", min_value=0.0)
+Toluene = st.number_input("Toluene", min_value=0.0)
+Xylene = st.number_input("Xylene", min_value=0.0)
 
-input_data = np.array([[CO_AQI, OZONE_AQI, NO2_AQI, PM25_AQI]])
+input_data = np.array([[PM25, PM10, NO, NO2, NOx, NH3, CO, SO2, O3, Benzene, Toluene, Xylene]])
 
+# ---------------- PREDICTION ----------------
 if st.button("🔍 Predict AQI"):
     if np.all(input_data == 0):
-        st.error("⚠️ Please enter valid AQI values (not all zeros)")
+        st.error("⚠️ Please enter valid pollutant values (not all zeros)")
     else:
         prediction = rf_model.predict(input_data)[0]
         st.success(f"🌍 Predicted AQI Value: **{prediction:.2f}**")
 
+        # AQI CATEGORY
         if prediction <= 50:
-            st.info("🟢 Good Air Quality")
+            st.info("🟢 Good – Air quality is satisfactory")
         elif prediction <= 100:
-            st.warning("🟡 Moderate Air Quality")
+            st.warning("🟡 Moderate – Acceptable air quality")
         elif prediction <= 200:
-            st.warning("🟠 Poor Air Quality")
+            st.warning("🟠 Poor – Sensitive groups may be affected")
         elif prediction <= 300:
-            st.error("🔴 Very Poor Air Quality")
+            st.error("🔴 Very Poor – Health alert")
         else:
-            st.error("☠️ Severe Air Quality")
+            st.error("☠️ Severe – Serious health effects")
+
+# ---------------- FOOTER ----------------
+st.markdown("---")
+st.caption("Developed as a Machine Learning Project | Random Forest Model")
